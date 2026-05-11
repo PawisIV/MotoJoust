@@ -1,12 +1,8 @@
-### Windows
-# Windows thumbnail cache files
-Thumbs.db
+# Project place file
+/MotoJoust.rbxlx
 
-# Folder config file
-[Dd]esktop.ini
+# Roblox Studio lock files
+/*.rbxlx.lock
+/*.rbxl.lock
 
-# Recycle Bin used on file shares
-$RECYCLE.BIN/
-
-# Windows shortcuts
-*.lnk
+sourcemap.json
