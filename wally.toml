@@ -1,0 +1,13 @@
+[package]
+name = "pawisiv/motojoust"
+version = "0.1.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+# Run `wally install` after changing this file. It (re)generates Packages/,
+# ServerPackages/ and DevPackages/ — those folders are git-ignored.
+[dependencies]
+Knit = "sleitnick/knit@^1.7.0"
+Signal = "sleitnick/signal@^1.5.0"
+
+[dev-dependencies]
