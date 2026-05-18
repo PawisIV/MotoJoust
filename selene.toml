@@ -1,0 +1,8 @@
+std = "roblox"
+
+exclude = ["Packages", "ServerPackages", "DevPackages"]
+
+[rules]
+# Knit / Roblox patterns that are intentional, not bugs:
+incorrect_standard_library_use = "warn"
+unused_variable = "warn"

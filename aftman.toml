@@ -1,7 +1,7 @@
-# This file lists tools managed by Aftman, a cross-platform toolchain manager.
-# For more information, see https://github.com/LPGhatguy/aftman
-
-# To add a new tool, add an entry to this table.
+# Toolchain managed by Aftman (https://github.com/LPGhatguy/aftman).
+# Everyone (and Claude Code) gets identical tool versions via `aftman install`.
 [tools]
-rojo = "rojo-rbx/rojo@7.7.0-rc.1"
-# rojo = "rojo-rbx/rojo@6.2.0"
+rojo = "rojo-rbx/rojo@7.7.0-rc.1"        # Source <-> Studio sync + place builds
+wally = "UpliftGames/wally@0.3.2"        # Package manager (Knit, etc.)
+stylua = "JohnnyMorganz/StyLua@2.5.2"    # Code formatter (run before committing)
+selene = "Kampfkarren/selene@0.30.1"     # Static linter for Luau

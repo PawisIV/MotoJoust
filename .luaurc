@@ -1,0 +1,12 @@
+{
+  "languageMode": "strict",
+  "lint": {
+    "*": true
+  },
+  "lintErrors": false,
+  "aliases": {
+    "pkg": "Packages",
+    "srvpkg": "ServerPackages",
+    "shared": "src/shared"
+  }
+}
