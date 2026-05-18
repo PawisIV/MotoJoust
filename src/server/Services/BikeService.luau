@@ -135,8 +135,28 @@ end
 function BikeService:SpawnBike(player: Player, character: Model)
 	self:DespawnBike(player)
 
-	local humanoid = character:FindFirstChildOfClass("Humanoid") :: Humanoid?
-	if not humanoid then
+	-- CharacterAdded can fire before the character is fully spawned. The
+	-- Humanoid object may exist while the engine still treats it as not-alive,
+	-- so forcing it into a seat fails with
+	-- "Sit : param is not a Humanoid or humanoid is dead". Wait for the
+	-- Humanoid AND HumanoidRootPart to be present before binding.
+	local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?
+	local rootPart = character:WaitForChild("HumanoidRootPart", 10) :: BasePart?
+	if not humanoid or not rootPart then
+		return
+	end
+
+	-- WaitForChild only proves Humanoid/RootPart exist under the model; the
+	-- character can still be unparented when CharacterAdded fires. VehicleSeat
+	-- :Sit silently rejects a humanoid whose character is not in the world
+	-- (DBG proved humInGame=false, occupant stayed nil). Wait until the
+	-- character is actually a descendant of Workspace before binding.
+	local guard = 0
+	while not character:IsDescendantOf(workspace) and guard < 300 do
+		task.wait()
+		guard += 1
+	end
+	if not character:IsDescendantOf(workspace) then
 		return
 	end
 
