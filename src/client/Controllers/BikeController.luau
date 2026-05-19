@@ -64,8 +64,16 @@ function BikeController:_step(dt: number)
 	-- turns right and A (steer=-1) turns left.
 	self._heading -= steer * Config.Bike.TurnSpeed * dt
 
-	local target = throttle * Config.Bike.MaxSpeed
 	local step = Config.Bike.Acceleration * dt
+
+	-- Closed-loop guard: don't let the commanded speed run further ahead of the
+	-- bike's actual ground speed than one ramp step (e.g. pinned against a
+	-- wall). Without this the open-loop ramp accumulates phantom speed it must
+	-- unwind before reverse engages, so pressing S after a wall stall is laggy.
+	local groundSpeed = Vector3.new(primary.AssemblyLinearVelocity.X, 0, primary.AssemblyLinearVelocity.Z).Magnitude
+	self._speed = math.clamp(self._speed, -(groundSpeed + step), groundSpeed + step)
+
+	local target = throttle * Config.Bike.MaxSpeed
 	if self._speed < target then
 		self._speed = math.min(self._speed + step, target)
 	elseif self._speed > target then
