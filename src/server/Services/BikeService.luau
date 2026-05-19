@@ -30,10 +30,14 @@ local BikeService = Knit.CreateService({
 	_state = {} :: { [Player]: State },
 	_respawnThreads = {} :: { [Player]: thread },
 	_charConns = {} :: { [Player]: RBXScriptConnection },
+	_combat = nil :: any,
 })
 
 local warnedNoSpawn = false
 local warnedNoTemplate = false
+
+-- Per-unordered-pair cooldown so sustained contact doesn't spam ResolveRam.
+local ramDebounce: { [string]: number } = {}
 
 -- Random SpawnLocation under Workspace, lifted by Config.World.SpawnHeight.
 -- Falls back to world origin (with a one-time warn) if none exist.
@@ -255,6 +259,7 @@ function BikeService:SpawnBike(player: Player, character: Model)
 	end)
 
 	buildDriveRig(bike)
+	self:_connectRam(bike)
 
 	self._bikes[player] = bike
 	self._state[player] = "Alive"
@@ -315,8 +320,65 @@ function BikeService:_onPlayerRemoving(player: Player)
 	self._state[player] = nil
 end
 
+-- Resolves a touched part to the owning bike Model (a Model with an
+-- OwnerUserId attribute named "Bike_*"), or nil.
+local function resolveBike(part: BasePart): Model?
+	local node: Instance? = part
+	while node do
+		if node:IsA("Model") and node:GetAttribute("OwnerUserId") ~= nil then
+			return node
+		end
+		node = node.Parent
+	end
+	return nil
+end
+
+function BikeService:_connectRam(bike: Model)
+	local primary = bike.PrimaryPart
+	if not primary then
+		return
+	end
+	primary.Touched:Connect(function(hit: BasePart)
+		local other = resolveBike(hit)
+		if not other or other == bike then
+			return
+		end
+
+		local idA = bike:GetAttribute("OwnerUserId") :: number?
+		local idB = other:GetAttribute("OwnerUserId") :: number?
+		if not idA or not idB then
+			return
+		end
+		local ownerA = Players:GetPlayerByUserId(idA)
+		local ownerB = Players:GetPlayerByUserId(idB)
+		if not ownerA or not ownerB then
+			return
+		end
+		if not self:IsAlive(ownerA) or not self:IsAlive(ownerB) then
+			return
+		end
+
+		local key = (idA < idB) and `{idA}-{idB}` or `{idB}-{idA}`
+		local now = os.clock()
+		local last = ramDebounce[key]
+		if last and now - last < Config.Combat.RamDebounceSeconds then
+			return
+		end
+		ramDebounce[key] = now
+
+		local pa = bike.PrimaryPart
+		local pb = other.PrimaryPart
+		if not pa or not pb then
+			return
+		end
+		local closing = (pa.AssemblyLinearVelocity - pb.AssemblyLinearVelocity).Magnitude
+		self._combat:ResolveRam(bike, other, closing)
+	end)
+end
+
 function BikeService:KnitStart()
 	local CombatService = Knit.GetService("CombatService")
+	self._combat = CombatService
 	CombatService.BikeDied:Connect(function(player: Player, bike: Model)
 		self:_onBikeDied(player, bike)
 	end)
