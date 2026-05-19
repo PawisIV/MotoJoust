@@ -104,7 +104,8 @@ local function buildDriveRig(bike: Model)
 	upright.Responsiveness = Config.Bike.UprightResponsiveness
 	upright.MaxTorque = 1e6
 	upright.MaxAngularVelocity = 1e6
-	upright.CFrame = CFrame.new()
+	local _, spawnYaw = primary.CFrame:ToOrientation()
+	upright.CFrame = CFrame.Angles(0, spawnYaw, 0)
 	upright.Parent = primary
 end
 
@@ -224,7 +225,6 @@ function BikeService:SpawnBike(player: Player, character: Model)
 	for _, part in bike:GetDescendants() do
 		if part:IsA("BasePart") then
 			part.Anchored = false
-			part.CanCollide = true
 		end
 	end
 
