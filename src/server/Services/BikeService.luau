@@ -96,9 +96,13 @@ local function buildDriveRig(bike: Model)
 	drive.Name = "BikeDrive"
 	drive.Attachment0 = rootAtt
 	drive.RelativeTo = Enum.ActuatorRelativeTo.World
-	-- Plane mode (world): control only the world XZ ground plane and leave the
-	-- world-Y axis free, so gravity/collisions/bumps stay pure physics.
+	-- Plane mode (world): the controlled plane is spanned by Primary/Secondary
+	-- TangentAxis. Pin them to world X and Z so the constraint drives only the
+	-- ground plane and leaves world-Y free (gravity/collisions/bumps stay pure
+	-- physics). PlaneVelocity.X -> world X, PlaneVelocity.Y -> world Z.
 	drive.VelocityConstraintMode = Enum.VelocityConstraintMode.Plane
+	drive.PrimaryTangentAxis = Vector3.xAxis
+	drive.SecondaryTangentAxis = Vector3.zAxis
 	drive.MaxForce = 1e6
 	drive.PlaneVelocity = Vector2.zero
 	drive.Parent = primary
