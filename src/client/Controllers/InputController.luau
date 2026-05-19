@@ -2,10 +2,11 @@
 --[[
 	InputController
 	Translates raw input into intent (throttle/steer) and exposes it via
-	GetMoveVector so rebinding lives in one place. Also owns the debug
-	self-destruct bind used to exercise the death/respawn loop.
+	GetMoveVector so rebinding lives in one place. Also locks out jumping
+	(player is permanently bike-bound) and owns the debug self-destruct bind.
 ]]
 
+local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
@@ -38,6 +39,14 @@ function InputController:GetMoveVector(): (number, number)
 end
 
 function InputController:KnitStart()
+	-- Player is permanently bound to a bike. Disabling the Humanoid Jumping
+	-- state alone does NOT stop a VehicleSeat ejecting on jump, so sink the
+	-- jump input before the default controls/seat ever see it (no jump
+	-- attempt, no eject, no reseat snap-back). Ungated by the debug flag.
+	ContextActionService:BindAction("MotoJoustNoJump", function()
+		return Enum.ContextActionResult.Sink
+	end, false, Enum.PlayerActions.CharacterJump)
+
 	if not DEBUG_SELF_DESTRUCT then
 		return
 	end
