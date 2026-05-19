@@ -4,8 +4,9 @@
 	Server authority for the player-bound bike lifecycle: spawn + seat-bind on
 	join/respawn, death -> dual ragdoll -> wreck linger -> respawn at a
 	SpawnLocation already mounted. The player is permanently bound to the bike's
-	VehicleSeat and cannot walk. Damage math lives in CombatService; this
-	service owns only lifecycle.
+	VehicleSeat and cannot walk. On spawn the bike gets a drive rig (LinearVelocity
+	+ AlignOrientation) that the owning client steers. Damage math lives in
+	CombatService; this service owns only lifecycle + the ram contact hook.
 ]]
 
 local Players = game:GetService("Players")
@@ -74,6 +75,54 @@ local function cloneTemplate(): Model?
 	return template:Clone()
 end
 
+-- Builds the client-driven movement rig on the bike's PrimaryPart:
+-- a planar LinearVelocity (BikeDrive) and an AlignOrientation (BikeUpright).
+-- The owning client sets their targets each frame (see BikeController).
+local function buildDriveRig(bike: Model)
+	local primary = bike.PrimaryPart
+	if not primary then
+		return
+	end
+
+	local rootAtt = Instance.new("Attachment")
+	rootAtt.Name = "BikeRoot"
+	rootAtt.Parent = primary
+
+	local drive = Instance.new("LinearVelocity")
+	drive.Name = "BikeDrive"
+	drive.Attachment0 = rootAtt
+	drive.RelativeTo = Enum.ActuatorRelativeTo.World
+	drive.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	drive.MaxForce = 1e6
+	drive.VectorVelocity = Vector3.zero
+	drive.Parent = primary
+
+	local upright = Instance.new("AlignOrientation")
+	upright.Name = "BikeUpright"
+	upright.Mode = Enum.OrientationAlignmentMode.OneAttachment
+	upright.Attachment0 = rootAtt
+	upright.Responsiveness = Config.Bike.UprightResponsiveness
+	upright.MaxTorque = 1e6
+	upright.MaxAngularVelocity = 1e6
+	upright.CFrame = CFrame.new()
+	upright.Parent = primary
+end
+
+-- Removes the drive rig so a dead bike tumbles freely instead of staying
+-- upright/driven.
+local function stripDriveRig(bike: Model)
+	local primary = bike.PrimaryPart
+	if not primary then
+		return
+	end
+	for _, name in { "BikeDrive", "BikeUpright", "BikeRoot" } do
+		local inst = primary:FindFirstChild(name)
+		if inst then
+			inst:Destroy()
+		end
+	end
+end
+
 -- Collapses a character into a ragdoll "corpse" (R15 only; R6 unsupported).
 local function ragdollCharacter(character: Model)
 	local humanoid = character:FindFirstChildOfClass("Humanoid") :: Humanoid?
@@ -103,8 +152,9 @@ local function ragdollCharacter(character: Model)
 	end
 end
 
--- Turns an alive (anchored) bike into free physics debris and shoves it.
+-- Strips the drive rig then turns the bike into free physics debris.
 local function ragdollBike(bike: Model)
+	stripDriveRig(bike)
 	for _, part in bike:GetDescendants() do
 		if part:IsA("BasePart") then
 			part.Anchored = false
@@ -122,6 +172,10 @@ function BikeService:GetBike(player: Player): Model?
 	return self._bikes[player]
 end
 
+function BikeService:IsAlive(player: Player): boolean
+	return self._state[player] == "Alive"
+end
+
 function BikeService:DespawnBike(player: Player)
 	local existing = self._bikes[player]
 	if existing then
@@ -131,15 +185,12 @@ function BikeService:DespawnBike(player: Player)
 end
 
 -- Spawns a bike for `character`, binds the player into its VehicleSeat so they
--- cannot walk, and marks them Alive.
+-- cannot walk, builds the drive rig, and marks them Alive.
 function BikeService:SpawnBike(player: Player, character: Model)
 	self:DespawnBike(player)
 
-	-- CharacterAdded can fire before the character is fully spawned. The
-	-- Humanoid object may exist while the engine still treats it as not-alive,
-	-- so forcing it into a seat fails with
-	-- "Sit : param is not a Humanoid or humanoid is dead". Wait for the
-	-- Humanoid AND HumanoidRootPart to be present before binding.
+	-- CharacterAdded can fire before the character is fully spawned. Wait for
+	-- the Humanoid AND HumanoidRootPart to exist before binding.
 	local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?
 	local rootPart = character:WaitForChild("HumanoidRootPart", 10) :: BasePart?
 	if not humanoid or not rootPart then
@@ -148,9 +199,8 @@ function BikeService:SpawnBike(player: Player, character: Model)
 
 	-- WaitForChild only proves Humanoid/RootPart exist under the model; the
 	-- character can still be unparented when CharacterAdded fires. VehicleSeat
-	-- :Sit silently rejects a humanoid whose character is not in the world
-	-- (DBG proved humInGame=false, occupant stayed nil). Wait until the
-	-- character is actually a descendant of Workspace before binding.
+	-- :Sit silently rejects a humanoid whose character is not in the world, so
+	-- wait until the character is actually a descendant of Workspace.
 	local guard = 0
 	while not character:IsDescendantOf(workspace) and guard < 300 do
 		task.wait()
@@ -169,9 +219,12 @@ function BikeService:SpawnBike(player: Player, character: Model)
 	bike:SetAttribute("OwnerUserId", player.UserId)
 	bike:SetAttribute("Health", Config.Bike.MaxHealth)
 
+	-- Drivable: the bike must be free physics (defensively unanchor in case the
+	-- template ships anchored).
 	for _, part in bike:GetDescendants() do
 		if part:IsA("BasePart") then
-			part.Anchored = true
+			part.Anchored = false
+			part.CanCollide = true
 		end
 	end
 
@@ -200,6 +253,8 @@ function BikeService:SpawnBike(player: Player, character: Model)
 			end
 		end
 	end)
+
+	buildDriveRig(bike)
 
 	self._bikes[player] = bike
 	self._state[player] = "Alive"
