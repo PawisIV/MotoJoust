@@ -7,7 +7,9 @@
 ]]
 
 local ContextActionService = game:GetService("ContextActionService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Knit = require(ReplicatedStorage.Packages.Knit)
@@ -46,6 +48,18 @@ function InputController:KnitStart()
 	ContextActionService:BindAction("MotoJoustNoJump", function()
 		return Enum.ContextActionResult.Sink
 	end, false, Enum.PlayerActions.CharacterJump)
+
+	-- The CAS sink alone does not reliably stop a VehicleSeat exiting on jump.
+	-- The local client owns its character, so authoritatively hold Jump = false
+	-- every frame: the seat never sees a jump, so it never ejects.
+	local localPlayer = Players.LocalPlayer
+	RunService.Heartbeat:Connect(function()
+		local character = localPlayer.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid") :: Humanoid?
+		if humanoid then
+			humanoid.Jump = false
+		end
+	end)
 
 	if not DEBUG_SELF_DESTRUCT then
 		return
