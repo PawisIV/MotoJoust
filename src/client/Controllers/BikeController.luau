@@ -74,7 +74,8 @@ function BikeController:_step(dt: number)
 
 	local facing = CFrame.Angles(0, self._heading, 0)
 	local fwd = facing.LookVector
-	drive.VectorVelocity = Vector3.new(fwd.X * self._speed, primary.AssemblyLinearVelocity.Y, fwd.Z * self._speed)
+	-- World XZ only; world-Y is left to gravity/physics (Plane-mode constraint).
+	drive.PlaneVelocity = Vector2.new(fwd.X * self._speed, fwd.Z * self._speed)
 	upright.CFrame = facing
 
 	if self._wobbleUntil ~= 0 and os.clock() >= self._wobbleUntil then

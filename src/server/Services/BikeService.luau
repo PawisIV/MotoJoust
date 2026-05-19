@@ -96,9 +96,11 @@ local function buildDriveRig(bike: Model)
 	drive.Name = "BikeDrive"
 	drive.Attachment0 = rootAtt
 	drive.RelativeTo = Enum.ActuatorRelativeTo.World
-	drive.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	-- Plane mode (world): control only the world XZ ground plane and leave the
+	-- world-Y axis free, so gravity/collisions/bumps stay pure physics.
+	drive.VelocityConstraintMode = Enum.VelocityConstraintMode.Plane
 	drive.MaxForce = 1e6
-	drive.VectorVelocity = Vector3.zero
+	drive.PlaneVelocity = Vector2.zero
 	drive.Parent = primary
 
 	local upright = Instance.new("AlignOrientation")
