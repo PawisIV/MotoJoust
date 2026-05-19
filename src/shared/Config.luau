@@ -10,6 +10,7 @@ local Config = {
 	Bike = {
 		MaxSpeed = 90, -- studs/sec
 		Acceleration = 45, -- studs/sec^2
+		DriveForcePerMass = 800, -- BikeDrive MaxForce per unit assembly mass; finite so walls overpower it
 		TurnSpeed = 2.4, -- rad/sec yaw at full steer
 		RespawnSeconds = 3,
 		MaxHealth = 100,

@@ -103,7 +103,10 @@ local function buildDriveRig(bike: Model)
 	drive.VelocityConstraintMode = Enum.VelocityConstraintMode.Plane
 	drive.PrimaryTangentAxis = Vector3.xAxis
 	drive.SecondaryTangentAxis = Vector3.zAxis
-	drive.MaxForce = 1e6
+	-- Finite, mass-scaled: strong enough for arcade response but a wall's
+	-- normal force overpowers it, so the bike rests against walls instead of
+	-- welding to them and can ease off when steered away.
+	drive.MaxForce = Config.Bike.DriveForcePerMass * primary.AssemblyMass
 	drive.PlaneVelocity = Vector2.zero
 	drive.Parent = primary
 
