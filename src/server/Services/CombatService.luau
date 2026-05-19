@@ -16,7 +16,10 @@ local Config = require(ReplicatedStorage.Shared.Config)
 
 local CombatService = Knit.CreateService({
 	Name = "CombatService",
-	Client = {},
+	Client = {
+		-- Server -> owning client: "your bike was hard-rammed, wobble now".
+		Wobble = Knit.CreateSignal(),
+	},
 
 	-- Signal.Signal<Player, Model>, created in KnitInit.
 	BikeDied = nil :: any,
@@ -42,7 +45,21 @@ function CombatService:ApplyDamage(bike: Model, amount: number, _source: Model?)
 	end
 end
 
--- Converts a bike-vs-bike collision into ram damage based on closing speed.
+-- Server-side: nudge a bike's owner to wobble if they are alive.
+function CombatService:_tryWobble(bike: Model)
+	local ownerUserId = bike:GetAttribute("OwnerUserId") :: number?
+	local owner = if ownerUserId then Players:GetPlayerByUserId(ownerUserId) else nil
+	if not owner then
+		return
+	end
+	local BikeService = Knit.GetService("BikeService")
+	if BikeService:IsAlive(owner) then
+		self.Client.Wobble:Fire(owner)
+	end
+end
+
+-- Converts a bike-vs-bike collision into ram damage based on closing speed,
+-- and a wobble on both riders above Config.Combat.WobbleSpeed.
 function CombatService:ResolveRam(bikeA: Model, bikeB: Model, relativeSpeed: number)
 	if relativeSpeed < Config.Combat.RamMinSpeed then
 		return
@@ -53,6 +70,11 @@ function CombatService:ResolveRam(bikeA: Model, bikeB: Model, relativeSpeed: num
 
 	self:ApplyDamage(bikeB, damage, bikeA)
 	self:ApplyDamage(bikeA, damage, bikeB)
+
+	if relativeSpeed > Config.Combat.WobbleSpeed then
+		self:_tryWobble(bikeA)
+		self:_tryWobble(bikeB)
+	end
 end
 
 -- Debug-only: lets a client instantly destroy their own bike to exercise the
