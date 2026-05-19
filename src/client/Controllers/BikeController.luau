@@ -60,7 +60,9 @@ function BikeController:_step(dt: number)
 	local InputController = Knit.GetController("InputController")
 	local throttle, steer = InputController:GetMoveVector()
 
-	self._heading += steer * Config.Bike.TurnSpeed * dt
+	-- Roblox +Y rotation is counter-clockwise (= left). Negate so D (steer=+1)
+	-- turns right and A (steer=-1) turns left.
+	self._heading -= steer * Config.Bike.TurnSpeed * dt
 
 	local target = throttle * Config.Bike.MaxSpeed
 	local step = Config.Bike.Acceleration * dt
