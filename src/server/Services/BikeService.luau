@@ -325,7 +325,7 @@ end
 local function resolveBike(part: BasePart): Model?
 	local node: Instance? = part
 	while node do
-		if node:IsA("Model") and node:GetAttribute("OwnerUserId") ~= nil then
+		if node:IsA("Model") and node:GetAttribute("OwnerUserId") ~= nil and node.Name:sub(1, 5) == "Bike_" then
 			return node
 		end
 		node = node.Parent
@@ -364,13 +364,14 @@ function BikeService:_connectRam(bike: Model)
 		if last and now - last < Config.Combat.RamDebounceSeconds then
 			return
 		end
-		ramDebounce[key] = now
 
 		local pa = bike.PrimaryPart
 		local pb = other.PrimaryPart
 		if not pa or not pb then
 			return
 		end
+
+		ramDebounce[key] = now
 		local closing = (pa.AssemblyLinearVelocity - pb.AssemblyLinearVelocity).Magnitude
 		self._combat:ResolveRam(bike, other, closing)
 	end)
