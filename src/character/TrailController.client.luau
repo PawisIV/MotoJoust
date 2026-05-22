@@ -1,14 +1,25 @@
 -- TrailController
--- StarterCharacterScripts/TrailController
-local RunService = game:GetService("RunService")
+-- StarterCharacterScripts/Character/TrailController
+
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local character = script.Parent
-local rootPart = character:WaitForChild("HumanoidRootPart")
-local humanoid = character:WaitForChild("Humanoid")
+print("[TrailController] Started")
 
-local SpawnTrail = ReplicatedStorage.Remotes.SpawnTrail
+-- ✅ Get character this way instead of script.Parent
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+print("[TrailController] Character found: " .. character.Name)
+
+-- Fire server to spawn trail
+local Remotes = ReplicatedStorage:WaitForChild("Remotes", 5)
+local SpawnTrail = Remotes:WaitForChild("SpawnTrail", 5)
 SpawnTrail:FireServer()
+
+print("[TrailController] Trail spawn requested")
 -- ========================================
 -- VFX LIST
 -- Add any new VFX here only
