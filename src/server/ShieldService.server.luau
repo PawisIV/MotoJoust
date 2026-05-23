@@ -122,7 +122,7 @@ local function spawnShield(player)
 	-- Attachment — parent of all VFX
 	local attachment = Instance.new("Attachment")
 	attachment.Name = "ShieldAttachment"
-	attachment.Position = Vector3.new(0, 0, 0)
+	attachment.Position = Vector3.new(0, 0, -1)
 	attachment.Parent = rootPart
 
 	-- ✅ Fix 1 — Shield body emit once immediately (same time as parry)
